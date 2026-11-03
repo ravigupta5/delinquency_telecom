@@ -1,0 +1,1 @@
+# delinquency_telecom
