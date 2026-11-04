@@ -2,6 +2,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import mlflow
+import os
 
 # 1. Define the Data Contract (Pydantic Schema)
 # This guarantees that the API only accepts the exact 32 features the model expects.
@@ -47,9 +48,10 @@ model = None
 @app.on_event("startup")
 def load_model():
     global model
-    mlflow.set_tracking_uri("http://localhost:5000")
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+    mlflow.set_tracking_uri(tracking_uri)
     
-    print("Fetching the latest model from MLflow...")
+    print(f"Fetching the latest model from MLflow at {tracking_uri}...")
     # Get the latest run from our experiment
     experiment = mlflow.get_experiment_by_name("Telecom_Delinquency_Prediction")
     runs = mlflow.search_runs(experiment_ids=[experiment.experiment_id], order_by=["start_time DESC"], max_results=1)
