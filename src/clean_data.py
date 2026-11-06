@@ -22,6 +22,11 @@ def clean_telecom_data(df):
     # (In a more advanced iteration, we could extract day/month features here).
     if 'pdate' in df.columns:
         df = df.drop(columns=['pdate'])
+
+    # V2 Update: Drop rows where 'aon' (Age on Network) is negative or zero, as these are data anomalies
+    if 'aon' in df.columns:
+        print("V2 Update: Filtering anomalous 'aon' records...")
+        df = df[df['aon'] > 0]
         
     return df
 
