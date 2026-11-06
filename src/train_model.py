@@ -5,8 +5,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
-# 1. Set the Tracking URI to your local server
-mlflow.set_tracking_uri("http://localhost:5000")
+from dotenv import load_dotenv
+
+# Load environment variables from the .env file
+load_dotenv()
 # 2. Name the experiment
 mlflow.set_experiment("Telecom_Delinquency_Prediction")
 
