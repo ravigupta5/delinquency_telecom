@@ -41,30 +41,22 @@ class TelecomFeatures(BaseModel):
     payback90: float
 
 # 2. Initialize the FastAPI app
-app = FastAPI(title="PhotonMatters Delinquency Scoring API")
+app = FastAPI(title="Telecom Delinquency Scoring API")
 model = None
 
 # 3. Load the model on startup
 @app.on_event("startup")
 def load_model():
     global model
-    tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
-    mlflow.set_tracking_uri(tracking_uri)
+    # The CI pipeline injects the downloaded model exactly here before Docker builds
+    model_path = "/app/model"
     
-    print(f"Fetching the latest model from MLflow at {tracking_uri}...")
-    # Get the latest run from our experiment
-    experiment = mlflow.get_experiment_by_name("Telecom_Delinquency_Prediction")
-    runs = mlflow.search_runs(experiment_ids=[experiment.experiment_id], order_by=["start_time DESC"], max_results=1)
-    
-    if runs.empty:
-        raise RuntimeError("No MLflow runs found. Train the model first.")
+    if not os.path.exists(model_path):
+        raise RuntimeError(f"Production model not found at {model_path}. CI pipeline failed to inject it.")
         
-    latest_run_id = runs.iloc[0].run_id
-    model_uri = f"runs:/{latest_run_id}/random_forest_model"
-    
-    # Load the model using MLflow's pyfunc wrapper (handles skops securely behind the scenes)
-    model = mlflow.pyfunc.load_model(model_uri)
-    print(f"Model loaded successfully from Run ID: {latest_run_id}")
+    print(f"Loading production model directly from file system: {model_path}")
+    model = mlflow.pyfunc.load_model(model_path)
+    print("Production Model loaded successfully!")
 
 # 4. Define the Prediction Endpoint
 @app.post("/predict")
