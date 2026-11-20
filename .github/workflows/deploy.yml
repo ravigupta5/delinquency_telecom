@@ -50,3 +50,22 @@ jobs:
           
           echo "Pushing image to GHCR..."
           docker push $IMAGE_NAME
+
+          # ... [Keep previous steps: Build and Push Docker Image] ...
+
+      - name: Deploy to AWS EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # 1. Download the newest image from GHCR
+            sudo docker pull ghcr.io/ravigupta5/telecom-delinquency-api:latest
+            
+            # 2. Stop and remove the old container if it exists
+            sudo docker stop delinquency-api || true
+            sudo docker rm delinquency-api || true
+            
+            # 3. Start the new container with a specific name
+            sudo docker run -d --name delinquency-api -p 8000:8000 ghcr.io/ravigupta5/telecom-delinquency-api:latest
