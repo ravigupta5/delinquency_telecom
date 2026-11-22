@@ -67,5 +67,5 @@ jobs:
             sudo docker stop delinquency-api || true
             sudo docker rm delinquency-api || true
             
-            # 3. Start the new container with a specific name
-            sudo docker run -d --name delinquency-api -p 8000:8000 ghcr.io/ravigupta5/telecom-delinquency-api:latest
+            # 3. Start the new container with a specific name AND a mounted volume
+            sudo docker run -d --name delinquency-api -p 8000:8000 -v /home/ubuntu/api_logs:/app/logs ghcr.io/ravigupta5/telecom-delinquency-api:latest

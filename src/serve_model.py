@@ -3,6 +3,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import mlflow
 import os
+import json
+import logging
+from datetime import datetime
 
 # 1. Define the Data Contract (Pydantic Schema)
 # This guarantees that the API only accepts the exact 32 features the model expects.
@@ -40,14 +43,24 @@ class TelecomFeatures(BaseModel):
     payback30: float
     payback90: float
 
+# Initialize Persistent Logging
+os.makedirs("/app/logs", exist_ok=True)
+logger = logging.getLogger("model_logger")
+logger.setLevel(logging.INFO)
+file_handler = logging.FileHandler("/app/logs/predictions.jsonl")
+logger.addHandler(file_handler)
+
 # 2. Initialize the FastAPI app
 app = FastAPI(title="Telecom Delinquency Scoring API")
 model = None
+model_version = "unknown"
 
 # 3. Load the model on startup
 @app.on_event("startup")
 def load_model():
     global model
+    global model_version
+    
     # The CI pipeline injects the downloaded model exactly here before Docker builds
     model_path = "/app/model"
     
@@ -56,7 +69,14 @@ def load_model():
         
     print(f"Loading production model directly from file system: {model_path}")
     model = mlflow.pyfunc.load_model(model_path)
-    print("Production Model loaded successfully!")
+    
+    # Extract the MLflow Run ID to securely version the predictions
+    try:
+        model_version = model.metadata.run_id
+    except Exception:
+        model_version = "latest_unversioned"
+        
+    print(f"Production Model loaded successfully! Version: {model_version}")
 
 # 4. Define the Prediction Endpoint
 @app.post("/predict")
@@ -65,14 +85,26 @@ def predict_delinquency(features: TelecomFeatures):
         raise HTTPException(status_code=500, detail="Model is not loaded.")
         
     try:
-        # Convert the validated JSON payload into a pandas DataFrame (1 row)
-        input_data = pd.DataFrame([features.dict()])
+        # Convert the validated JSON payload into a dictionary and then a DataFrame
+        input_dict = features.dict()
+        input_data = pd.DataFrame([input_dict])
         
         # Generate prediction
         prediction = model.predict(input_data)[0]
         
         # Map the binary output to business logic
         risk_status = "Delinquent" if prediction == 1 else "Non-Delinquent"
+        
+        # --- LOGGING EXECUTION ---
+        log_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "model_version": model_version,
+            "input_features": input_dict,
+            "prediction_code": int(prediction),
+            "risk_status": risk_status
+        }
+        logger.info(json.dumps(log_entry))
+        # -------------------------
         
         return {
             "prediction_code": int(prediction),
