@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 os.environ["MODEL_PATH"] = "./production_model"
 
 # 2. Import the FastAPI app AFTER setting the environment variable
-from serve_model import app
+from src.serve_model import app
 
 client = TestClient(app)
 
