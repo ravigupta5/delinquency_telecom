@@ -4,12 +4,12 @@ from fastapi.testclient import TestClient
 
 # 1. Point the API to the local model folder downloaded by your CI pipeline
 # (Adjust "./model" if your download_model.py script saves it to a different folder name locally)
+# 1. Point the API to local folders for testing BEFORE importing app
 os.environ["MODEL_PATH"] = "./production_model"
+os.environ["LOG_DIR"] = "./test_logs"
 
 # 2. Import the FastAPI app AFTER setting the environment variable
 from src.serve_model import app
-
-client = TestClient(app)
 
 def test_predict_endpoint_success():
     """
@@ -53,7 +53,9 @@ def test_predict_endpoint_success():
     }
 
     # 3. Simulate a POST request exactly as a customer would send it
-    response = client.post("/predict", json=valid_payload)
+    # 3. Using 'with' triggers the @app.on_event("startup") model loading
+    with TestClient(app) as client:
+        response = client.post("/predict", json=valid_payload)
 
     # 4. Assert the mathematical and structural truths
     assert response.status_code == 200, f"API failed with error: {response.text}"

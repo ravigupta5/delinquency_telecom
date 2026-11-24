@@ -44,10 +44,11 @@ class TelecomFeatures(BaseModel):
     payback90: float
 
 # Initialize Persistent Logging
-os.makedirs("/app/logs", exist_ok=True)
+log_dir = os.getenv("LOG_DIR", "/app/logs")
+os.makedirs(log_dir, exist_ok=True)
 logger = logging.getLogger("model_logger")
 logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler("/app/logs/predictions.jsonl")
+file_handler = logging.FileHandler(os.path.join(log_dir, "predictions.jsonl"))
 logger.addHandler(file_handler)
 
 # 2. Initialize the FastAPI app
