@@ -62,7 +62,8 @@ def load_model():
     global model_version
     
     # The CI pipeline injects the downloaded model exactly here before Docker builds
-    model_path = "/app/model"
+    # Use an environment variable, defaulting to the Docker path if not provided
+    model_path = os.getenv("MODEL_PATH", "/app/model")
     
     if not os.path.exists(model_path):
         raise RuntimeError(f"Production model not found at {model_path}. CI pipeline failed to inject it.")
